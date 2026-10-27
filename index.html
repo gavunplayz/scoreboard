@@ -247,7 +247,7 @@ window.addEventListener("scoreboard:signin", () => signedInUser ? signOut(auth).
 window.addEventListener("scoreboard:signup", () => signedInUser ? toast("You're already signed in.") : openAuth("signup"));
 window.addEventListener("scoreboard:custom", () => {
   if (!signedInUser) { openAuth("signup"); setAuthMessage("Create an account first to build your own scoreboard."); }
-  else toast("Your account is connected. The scoreboard builder is coming in a later step.");
+  else window.location.href = "builder.html";
 });
 onAuthStateChanged(auth, user => {
   signedInUser = user;
