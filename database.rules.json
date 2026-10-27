@@ -16,7 +16,8 @@
         "$boardId": {
           ".validate": "newData.hasChildren(['title','sport','status','homeName','awayName','homeShort','awayShort','homeScore','awayScore','matchInfo','description','ownerUid','createdAt','updatedAt']) && newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('title').val().length <= 70 && newData.child('sport').isString() && newData.child('status').isString() && (newData.child('status').val() === 'Upcoming' || newData.child('status').val() === 'Live' || newData.child('status').val() === 'Final') && newData.child('homeName').isString() && newData.child('homeName').val().length > 0 && newData.child('homeName').val().length <= 45 && newData.child('awayName').isString() && newData.child('awayName').val().length > 0 && newData.child('awayName').val().length <= 45 && newData.child('homeShort').isString() && newData.child('homeShort').val().length <= 5 && newData.child('awayShort').isString() && newData.child('awayShort').val().length <= 5 && newData.child('homeScore').isNumber() && newData.child('homeScore').val() >= 0 && newData.child('homeScore').val() <= 9999 && newData.child('awayScore').isNumber() && newData.child('awayScore').val() >= 0 && newData.child('awayScore').val() <= 9999 && newData.child('matchInfo').isString() && newData.child('description').isString() && newData.child('ownerUid').val() === $uid && newData.child('createdAt').isNumber() && newData.child('updatedAt').isNumber()"
         }
-      }
+      },
+      ".read": true
     }
   }
 }
