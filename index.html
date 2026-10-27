@@ -72,7 +72,22 @@ header{height:76px;border-bottom:1px solid #ffffff12;display:flex;align-items:ce
 </main>
 <footer><div class="wrap footer-inner"><div><span class="footer-brand">scoreboard.</span> &nbsp; Scores for every kind of competition.</div><div>Early prototype · Example events are demonstration data.</div></div></footer>
 <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal"><div class="modal-head"><div><div class="tiny-label" id="modalLeague">Event details</div><h3 id="modalTitle">Scoreboard</h3></div><button class="close" id="closeModal" aria-label="Close">✕</button></div><div class="modal-score" id="modalScore"></div><div class="modal-note" id="modalNote">This is demonstration data. Live data and accounts will be connected in a later step.</div></div></div>
-<div class="toast" id="toast" role="status"></div>
+
+<div class="modal-backdrop" id="authBackdrop" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+ <div class="modal">
+  <div class="modal-head"><div><div class="tiny-label">SCOREBOARD ACCOUNT</div><h3 id="authTitle">Welcome back</h3></div><button class="close" id="authClose" aria-label="Close">✕</button></div>
+  <p id="authDescription">Sign in to manage your scoreboards.</p>
+  <form id="authForm" style="display:grid;gap:12px">
+   <label style="display:grid;gap:6px;color:#c4cedd;font-size:12px;font-weight:800">Email address<input id="authEmail" type="email" required autocomplete="email" placeholder="you@example.com" style="padding:12px;border:1px solid var(--line);background:#0b111c;color:white;border-radius:10px;min-width:0"></label>
+   <label id="displayNameLabel" style="display:none;gap:6px;color:#c4cedd;font-size:12px;font-weight:800">Display name<input id="authDisplayName" type="text" maxlength="40" autocomplete="nickname" placeholder="How should we call you?" style="padding:12px;border:1px solid var(--line);background:#0b111c;color:white;border-radius:10px;min-width:0"></label>
+   <label style="display:grid;gap:6px;color:#c4cedd;font-size:12px;font-weight:800">Password<input id="authPassword" type="password" required minlength="6" autocomplete="current-password" placeholder="At least 6 characters" style="padding:12px;border:1px solid var(--line);background:#0b111c;color:white;border-radius:10px;min-width:0"></label>
+   <div id="authMessage" role="status" style="font-size:12px;color:#aab7c9;min-height:18px"></div>
+   <button class="btn primary" id="authSubmit" type="submit">Sign in</button>
+  </form>
+  <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px"><button class="btn" id="authModeToggle" type="button">Create an account</button><button class="btn" id="resetPasswordBtn" type="button">Forgot password?</button></div>
+ </div>
+</div>
+\n<div class="toast" id="toast" role="status"></div>
 <script>
 const events = [
  {id:1,sport:"Football",league:"PRO FOOTBALL",status:"Live",home:"Kansas City",away:"San Francisco",homeShort:"KC",awayShort:"SF",homeScore:"24",awayScore:"21",detail:"4th Quarter · 2:41 remaining",time:"Q4 · 2:41",note:"Sample football scoreboard. Scores are illustrative and are not a live feed."},
@@ -105,10 +120,142 @@ backdrop.addEventListener("click",e=>{if(e.target===backdrop)backdrop.classList.
 document.addEventListener("keydown",e=>{if(e.key==="Escape")backdrop.classList.remove("open")});
 let toastTimer;
 function toast(message){const el=document.getElementById("toast");el.textContent=message;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),2800)}
-document.getElementById("signInBtn").addEventListener("click",()=>toast("Account sign-in is coming in the next build."));
-document.getElementById("getStartedBtn").addEventListener("click",()=>toast("Account creation is coming in the next build."));
-document.getElementById("customBtn").addEventListener("click",()=>toast("The custom scoreboard builder is on our build list."));
+document.getElementById("signInBtn").addEventListener("click",()=>window.dispatchEvent(new Event("scoreboard:signin")));
+document.getElementById("getStartedBtn").addEventListener("click",()=>window.dispatchEvent(new Event("scoreboard:signup")));
+document.getElementById("customBtn").addEventListener("click",()=>window.dispatchEvent(new Event("scoreboard:custom")));
 renderEvents();
 </script>
-</body>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+import { getDatabase, ref, set, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDmHlwKBMRfM78_Kl0rT8d3UbTD3wNJfeU",
+  authDomain: "rps-battle-royale-1fcb2.firebaseapp.com",
+  databaseURL: "https://rps-battle-royale-1fcb2-default-rtdb.firebaseio.com",
+  projectId: "rps-battle-royale-1fcb2",
+  storageBucket: "rps-battle-royale-1fcb2.firebasestorage.app",
+  messagingSenderId: "579071255475",
+  appId: "1:579071255475:web:14c88ed0ed882dd656e1c6"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const database = getDatabase(app);
+const authBackdrop = document.getElementById("authBackdrop");
+const authForm = document.getElementById("authForm");
+const authTitle = document.getElementById("authTitle");
+const authDescription = document.getElementById("authDescription");
+const authEmail = document.getElementById("authEmail");
+const authPassword = document.getElementById("authPassword");
+const authDisplayName = document.getElementById("authDisplayName");
+const displayNameLabel = document.getElementById("displayNameLabel");
+const authMessage = document.getElementById("authMessage");
+const authSubmit = document.getElementById("authSubmit");
+const authModeToggle = document.getElementById("authModeToggle");
+const resetPasswordBtn = document.getElementById("resetPasswordBtn");
+let authMode = "signin";
+let signedInUser = null;
+
+function setAuthMessage(message, error = false) {
+  authMessage.textContent = message;
+  authMessage.style.color = error ? "#ff9a9a" : "#aab7c9";
+}
+function setAuthMode(mode) {
+  authMode = mode;
+  const create = mode === "signup";
+  authTitle.textContent = create ? "Create your account" : "Welcome back";
+  authDescription.textContent = create ? "Create a free account to start managing your scoreboards." : "Sign in to manage your scoreboards.";
+  displayNameLabel.style.display = create ? "grid" : "none";
+  authDisplayName.required = create;
+  authPassword.autocomplete = create ? "new-password" : "current-password";
+  authSubmit.textContent = create ? "Create account" : "Sign in";
+  authModeToggle.textContent = create ? "I already have an account" : "Create an account";
+  resetPasswordBtn.style.display = create ? "none" : "inline-block";
+  setAuthMessage("");
+}
+function openAuth(mode) {
+  setAuthMode(mode);
+  authBackdrop.classList.add("open");
+  setTimeout(() => authEmail.focus(), 0);
+}
+function closeAuth() { authBackdrop.classList.remove("open"); }
+function friendlyError(error) {
+  const messages = {
+    "auth/email-already-in-use": "That email already has an account. Try signing in.",
+    "auth/invalid-email": "Please enter a valid email address.",
+    "auth/weak-password": "Choose a password with at least 6 characters.",
+    "auth/invalid-credential": "Email or password is incorrect.",
+    "auth/user-not-found": "No account was found for that email.",
+    "auth/wrong-password": "Email or password is incorrect.",
+    "auth/too-many-requests": "Too many attempts. Please wait a bit and try again.",
+    "auth/network-request-failed": "Network error. Check your connection and try again.",
+    "auth/operation-not-allowed": "Email/Password sign-in is not enabled in Firebase Authentication yet."
+  };
+  return messages[error.code] || error.message || "Something went wrong. Please try again.";
+}
+authForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  authSubmit.disabled = true;
+  setAuthMessage(authMode === "signup" ? "Creating your account…" : "Signing you in…");
+  try {
+    const email = authEmail.value.trim();
+    const password = authPassword.value;
+    if (authMode === "signup") {
+      const displayName = authDisplayName.value.trim();
+      if (!displayName) throw new Error("Please enter a display name.");
+      const credential = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(credential.user, { displayName });
+      try {
+        await set(ref(database, "profiles/" + credential.user.uid), {
+          displayName,
+          email: credential.user.email,
+          createdAt: Date.now()
+        });
+      } catch (dbError) {
+        console.warn("Account created; profile write awaits Realtime Database rules:", dbError);
+      }
+      setAuthMessage("Account created! You're signed in.");
+      toast("Welcome to Scoreboard, " + displayName + "!");
+      setTimeout(closeAuth, 650);
+    } else {
+      await signInWithEmailAndPassword(auth, email, password);
+      setAuthMessage("Signed in successfully.");
+      toast("You're signed in!");
+      setTimeout(closeAuth, 450);
+    }
+  } catch (error) {
+    setAuthMessage(friendlyError(error), true);
+  } finally {
+    authSubmit.disabled = false;
+  }
+});
+authModeToggle.addEventListener("click", () => setAuthMode(authMode === "signin" ? "signup" : "signin"));
+resetPasswordBtn.addEventListener("click", async () => {
+  const email = authEmail.value.trim();
+  if (!email) { setAuthMessage("Enter your email address first.", true); authEmail.focus(); return; }
+  try {
+    await sendPasswordResetEmail(auth, email);
+    setAuthMessage("If an account exists for that email, a reset email has been sent.");
+  } catch (error) { setAuthMessage(friendlyError(error), true); }
+});
+document.getElementById("authClose").addEventListener("click", closeAuth);
+authBackdrop.addEventListener("click", event => { if (event.target === authBackdrop) closeAuth(); });
+window.addEventListener("scoreboard:signin", () => signedInUser ? signOut(auth).then(() => toast("Signed out.")) : openAuth("signin"));
+window.addEventListener("scoreboard:signup", () => signedInUser ? toast("You're already signed in.") : openAuth("signup"));
+window.addEventListener("scoreboard:custom", () => {
+  if (!signedInUser) { openAuth("signup"); setAuthMessage("Create an account first to build your own scoreboard."); }
+  else toast("Your account is connected. The scoreboard builder is coming in a later step.");
+});
+onAuthStateChanged(auth, user => {
+  signedInUser = user;
+  const signInButton = document.getElementById("signInBtn");
+  const getStartedButton = document.getElementById("getStartedBtn");
+  signInButton.textContent = user ? "Sign out" : "Sign in";
+  getStartedButton.textContent = user ? (user.displayName || "My account") : "Get started ↗";
+  getStartedButton.title = user ? user.email || "" : "Create a Scoreboard account";
+});
+</script>
+\n</body>
 </html>
