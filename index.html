@@ -87,7 +87,8 @@ header{height:76px;border-bottom:1px solid #ffffff12;display:flex;align-items:ce
   <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px"><button class="btn" id="authModeToggle" type="button">Create an account</button><button class="btn" id="resetPasswordBtn" type="button">Forgot password?</button></div>
  </div>
 </div>
-\n<div class="toast" id="toast" role="status"></div>
+
+<div class="toast" id="toast" role="status"></div>
 <script>
 const events = [
  {id:1,sport:"Football",league:"PRO FOOTBALL",status:"Live",home:"Kansas City",away:"San Francisco",homeShort:"KC",awayShort:"SF",homeScore:"24",awayScore:"21",detail:"4th Quarter · 2:41 remaining",time:"Q4 · 2:41",note:"Sample football scoreboard. Scores are illustrative and are not a live feed."},
@@ -257,5 +258,6 @@ onAuthStateChanged(auth, user => {
   getStartedButton.title = user ? user.email || "" : "Create a Scoreboard account";
 });
 </script>
-\n</body>
+
+</body>
 </html>
