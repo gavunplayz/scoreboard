@@ -222,12 +222,22 @@ authForm.addEventListener("submit", async (event) => {
       }
       setAuthMessage("Account created! You're signed in.");
       toast("Welcome to Scoreboard, " + displayName + "!");
-      setTimeout(closeAuth, 650);
+      const returnTo = new URLSearchParams(window.location.search).get("return");
+      if (returnTo === "builder.html") {
+        window.location.href = "builder.html";
+      } else {
+        setTimeout(closeAuth, 650);
+      }
     } else {
       await signInWithEmailAndPassword(auth, email, password);
       setAuthMessage("Signed in successfully.");
       toast("You're signed in!");
-      setTimeout(closeAuth, 450);
+      const returnTo = new URLSearchParams(window.location.search).get("return");
+      if (returnTo === "builder.html") {
+        window.location.href = "builder.html";
+      } else {
+        setTimeout(closeAuth, 450);
+      }
     }
   } catch (error) {
     setAuthMessage(friendlyError(error), true);
@@ -249,8 +259,14 @@ authBackdrop.addEventListener("click", event => { if (event.target === authBackd
 window.addEventListener("scoreboard:signin", () => signedInUser ? signOut(auth).then(() => toast("Signed out.")) : openAuth("signin"));
 window.addEventListener("scoreboard:signup", () => signedInUser ? toast("You're already signed in.") : openAuth("signup"));
 window.addEventListener("scoreboard:custom", () => {
-  if (!signedInUser) { openAuth("signup"); setAuthMessage("Create an account first to build your own scoreboard."); }
-  else window.location.href = "builder.html";
+  if (!signedInUser) {
+    const next = new URL(window.location.href);
+    next.searchParams.set("signin", "1");
+    next.searchParams.set("return", "builder.html");
+    window.location.href = next.pathname + next.search + "#signin";
+  } else {
+    window.location.href = "builder.html";
+  }
 });
 onAuthStateChanged(auth, user => {
   signedInUser = user;
@@ -259,6 +275,13 @@ onAuthStateChanged(auth, user => {
   signInButton.textContent = user ? "Sign out" : "Sign in";
   getStartedButton.textContent = user ? (user.displayName || "My account") : "Get started ↗";
   getStartedButton.title = user ? user.email || "" : "Create a Scoreboard account";
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("signin") === "1" && !user) {
+    openAuth("signin");
+    setAuthMessage("Sign in to continue to Scoreboard Studio.");
+  } else if (params.get("signin") === "1" && user && params.get("return") === "builder.html") {
+    window.location.href = "builder.html";
+  }
 });
 </script>
 
