@@ -1,0 +1,13 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "profiles": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.hasChildren(['displayName', 'email', 'createdAt']) && newData.numChildren() === 3 && newData.child('displayName').isString() && newData.child('displayName').val().length > 0 && newData.child('displayName').val().length <= 40 && newData.child('email').isString() && newData.child('email').val() === auth.token.email && newData.child('createdAt').isNumber()"
+      }
+    }
+  }
+}
